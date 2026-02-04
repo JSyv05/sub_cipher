@@ -7,6 +7,26 @@ import os
 import random
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
+most_common_letter = "etaoinsrhdlucmfywgpbvkxqjz"
+common_english_words = [
+    " the ",
+    " be ",
+    " to ",
+    " of ",
+    " and ",
+    " a ",
+    " in ",
+    " that ",
+    " have ",
+    " i ",
+]
+
+folder_path = "output"
+
+plain_text_path = folder_path + "/plain_text.txt"
+cipher_text_path = folder_path + "/cipher_text.txt"
+key_path = folder_path + "/key.txt"
+freq_table_path = folder_path + "/freq_table.txt"
 
 alphabet_length = len(alphabet)
 
@@ -77,11 +97,16 @@ def gen_freq_table(text, alphabet):
         freq_table[char] = 0
 
     print(f"Frequency table: {freq_table}")
+    print("Sorting...")
     sorted_freq_table = sorted(
         freq_table.items(), key=lambda item: item[1], reverse=True
     )
     print(f"Sorted frequency table: {sorted_freq_table}")
     return sorted_freq_table
+
+
+def crack():
+    pass
 
 
 def main():
@@ -113,6 +138,12 @@ def main():
         action="store_true",
     )
 
+    parser.add_argument(
+        "--crack",
+        help="attempts to crack text with patterns. generates possible keys and solutions",
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
     if not bool(args.encrypt) ^ bool(args.decrypt):
@@ -124,6 +155,7 @@ def main():
 
     elif args.encrypt:
         with open(args.textfile, "r") as text_file:
+            os.makedirs(folder_path, exist_ok=True)
             if bool(not args.key) ^ bool(args.nokey):
                 print("ERR: Must specify key or no key")
                 return
@@ -150,27 +182,35 @@ def main():
                 print(f"ERR: Key must be {alphabet_length} letters long ({len(key)})")
                 return
 
-            plain_text = text_file.read()
+            for char in key:
+                if key.count(char) > 1:
+                    print(
+                        f"ERR: Key cannot contain duplicate letters ({char}, {key.count(char)})"
+                    )
+                    return
 
-            cipher_output = sub_encrypt(plain_text, key, alphabet).replace("\n", "")
+            plain_text = text_file.read().replace("\n", "")
 
-            cipher_file = open("cipher_text.txt", "w")
+            cipher_output = sub_encrypt(plain_text, key, alphabet)
+
+            cipher_file = open(cipher_text_path, "w")
             cipher_file.write(repr(cipher_output))
             cipher_file.close()
 
-            key_file = open("sub_cipher_key.txt", "w")
+            key_file = open(key_path, "w")
             key_file.write(repr(key))
             key_file.close()
 
     elif args.decrypt:
         with open(args.textfile, "r") as text_file:
+            os.makedirs(folder_path, exist_ok=True)
             if not bool(args.key) ^ bool(args.nokey):
                 print("ERR: Must specify key or no key")
                 return
             elif args.nokey:
-                cipher_text = text_file.read().replace("'", "")
+                cipher_text = text_file.read().replace("'", "").lower()
                 freq_table = gen_freq_table(cipher_text, alphabet)
-                freq_table_file = open("freq_table.txt", "w")
+                freq_table_file = open(freq_table_path, "w")
                 freq_table_file.write(repr(freq_table))
                 freq_table_file.close()
                 return
@@ -197,13 +237,20 @@ def main():
                 print(str(key))
                 return
 
+            for char in key:
+                if key.count(char) > 1:
+                    print(
+                        f"ERR: Key cannot contain duplicate letters ({char}, {key.count(char)})"
+                    )
+                    return
+
             cipher_text = text_file.read().replace("'", "").replace("\n", "")
             plain_output = sub_decrypt(cipher_text, key, alphabet)
-            plain_text_file = open("plain_text.txt", "w")
+            plain_text_file = open(plain_text_path, "w")
             plain_text_file.write(repr(plain_output))
             plain_text_file.close()
 
-            key_file = open("sub_cipher_key.txt", "w")
+            key_file = open(key_path, "w")
             key_file.write(repr(key))
             key_file.close()
 
