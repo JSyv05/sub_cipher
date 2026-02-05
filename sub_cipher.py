@@ -7,7 +7,7 @@ import os
 import random
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
-most_common_letter = "etaoinsrhdlucmfywgpbvkxqjz"
+most_common_letters = "etaoinsrhdlucmfywgpbvkxqjz"
 common_english_words = [
     " the ",
     " be ",
@@ -19,6 +19,9 @@ common_english_words = [
     " that ",
     " have ",
     " i ",
+    " it ",
+    " is ",
+    " you ",
 ]
 
 folder_path = "output"
@@ -27,6 +30,8 @@ plain_text_path = folder_path + "/plain_text.txt"
 cipher_text_path = folder_path + "/cipher_text.txt"
 key_path = folder_path + "/key.txt"
 freq_table_path = folder_path + "/freq_table.txt"
+crack_keys_text_path = folder_path + "/crack_keys.txt"
+crack_text_path = folder_path + "/crack_text.txt"
 
 alphabet_length = len(alphabet)
 
@@ -75,7 +80,7 @@ def gen_key():
     print("Generating key...")
     random.shuffle(letter_list)  # this isn't secure, but works :P
     result = "".join(letter_list)
-    print(f"Generated key: {result}", "\n")
+    print(f"Generated key: {result}")
     return result
 
 
@@ -105,8 +110,34 @@ def gen_freq_table(text, alphabet):
     return sorted_freq_table
 
 
-def crack():
+def crack(text, alphabet):
+    print("Cracking...")
+    freq_table = gen_freq_table(text, alphabet)
+    print("Creating key based on frequency table...")
+    freq_key_list = []
+
+    for key in freq_table:
+        freq_key_list.append(str(key))
+
+    freq_key = "".join(freq_key_list)
+
+    print(f"Frequency key: {freq_key}")
+    print("Generating map...")
+
+    freq_key_map = dict(zip(most_common_letters, freq_key))
+
+    print(f"Key mapping: {freq_key_map}")
     pass
+
+
+def write_file(content, path):
+    file = open(path, "w")
+    file.write(repr(content))
+    file.close()
+
+
+def remove_special_chars(text):
+    return text.replace("\n", "").replace("'", "").replace("[", "").replace("]", "")
 
 
 def main():
@@ -164,13 +195,7 @@ def main():
             elif args.key:
                 if os.path.isfile(args.key) and os.access(args.key, os.R_OK):
                     key_file = open(args.key, "r")
-                    key = key_file.read()
-                    key = (
-                        key.replace("'", "")
-                        .replace("[", "")
-                        .replace("]", "")
-                        .replace("\n", "")
-                    )
+                    key = remove_special_chars(key_file.read())
                     key_file.close()
                 else:
                     key = args.key
@@ -190,16 +215,9 @@ def main():
                     return
 
             plain_text = text_file.read().replace("\n", "")
-
             cipher_output = sub_encrypt(plain_text, key, alphabet)
-
-            cipher_file = open(cipher_text_path, "w")
-            cipher_file.write(repr(cipher_output))
-            cipher_file.close()
-
-            key_file = open(key_path, "w")
-            key_file.write(repr(key))
-            key_file.close()
+            write_file(cipher_output, cipher_text_path)
+            write_file(key, key_path)
 
     elif args.decrypt:
         with open(args.textfile, "r") as text_file:
@@ -208,22 +226,18 @@ def main():
                 print("ERR: Must specify key or no key")
                 return
             elif args.nokey:
-                cipher_text = text_file.read().replace("'", "").lower()
-                freq_table = gen_freq_table(cipher_text, alphabet)
-                freq_table_file = open(freq_table_path, "w")
-                freq_table_file.write(repr(freq_table))
-                freq_table_file.close()
-                return
+                if args.crack:
+                    return
+                else:
+                    cipher_text = remove_special_chars(text_file.read()).lower()
+                    freq_table = gen_freq_table(cipher_text, alphabet)
+
+                    write_file(freq_table, freq_table_path)
+                    return
             elif args.key:
                 if os.path.isfile(args.key) and os.access(args.key, os.R_OK):
                     key_file = open(args.key, "r")
-                    key = key_file.read()
-                    key = (
-                        key.replace("'", "")
-                        .replace("[", "")
-                        .replace("]", "")
-                        .replace("\n", "")
-                    )
+                    key = remove_special_chars(key_file.read())
                     key_file.close()
                 else:
                     key = args.key
@@ -244,15 +258,10 @@ def main():
                     )
                     return
 
-            cipher_text = text_file.read().replace("'", "").replace("\n", "")
+            cipher_text = remove_special_chars(text_file.read())
             plain_output = sub_decrypt(cipher_text, key, alphabet)
-            plain_text_file = open(plain_text_path, "w")
-            plain_text_file.write(repr(plain_output))
-            plain_text_file.close()
-
-            key_file = open(key_path, "w")
-            key_file.write(repr(key))
-            key_file.close()
+            write_file(plain_output, plain_text_path)
+            write_file(key, key_path)
 
 
 if __name__ == "__main__":
