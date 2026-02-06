@@ -5,6 +5,7 @@
 import argparse
 import os
 import random
+import re
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 most_common_letters = "etaoinsrhdlucmfywgpbvkxqjz"
@@ -84,6 +85,14 @@ def gen_key():
     return result
 
 
+def remove_special_chars(text):
+    return re.sub(r"[^a-zA-Z\s]", "", text)
+
+
+def remove_special_chars_sub_space(text):
+    return re.sub(r"[^a-zA-Z]", "", text)
+
+
 def gen_freq_table(text, alphabet):
     print(f"Cipher text: {text}")
     print("Generating frequency table...")
@@ -101,43 +110,38 @@ def gen_freq_table(text, alphabet):
     for char in missing_letters:
         freq_table[char] = 0
 
-    print(f"Frequency table: {freq_table}")
+    print(f"Frequency table: {freq_table}\n")
     print("Sorting...")
     sorted_freq_table = sorted(
         freq_table.items(), key=lambda item: item[1], reverse=True
     )
-    print(f"Sorted frequency table: {sorted_freq_table}")
+    print(f"Sorted frequency table: {sorted_freq_table}\n")
     return sorted_freq_table
 
 
 def crack(text, alphabet):
     print("Cracking...")
-    freq_table = gen_freq_table(text, alphabet)
+    freq_table = str(gen_freq_table(text, alphabet))
+
     print("Creating key based on frequency table...")
-    freq_key_list = []
 
-    for key in freq_table:
-        freq_key_list.append(str(key))
+    freq_key = remove_special_chars_sub_space(freq_table)
 
-    freq_key = "".join(freq_key_list)
+    print(f"Frequency key: {freq_key}\n")
 
-    print(f"Frequency key: {freq_key}")
-    print("Generating map...")
+    print("Generating frequency map...")
 
     freq_key_map = dict(zip(most_common_letters, freq_key))
 
-    print(f"Key mapping: {freq_key_map}")
-    pass
+    print(f"Frequency mapping: {freq_key_map}\n")
+
+    print("Mapping frequency onto alphabet...")
 
 
 def write_file(content, path):
     file = open(path, "w")
     file.write(repr(content))
     file.close()
-
-
-def remove_special_chars(text):
-    return text.replace("\n", "").replace("'", "").replace("[", "").replace("]", "")
 
 
 def main():
@@ -227,6 +231,8 @@ def main():
                 return
             elif args.nokey:
                 if args.crack:
+                    cipher_text = remove_special_chars(text_file.read()).lower()
+                    crack(cipher_text, alphabet)
                     return
                 else:
                     cipher_text = remove_special_chars(text_file.read()).lower()
