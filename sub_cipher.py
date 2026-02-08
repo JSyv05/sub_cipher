@@ -2,7 +2,7 @@
 # - Add in different key generators (shift, rotation)
 # - Implement cracker functionality
 # - Implement secure key generation
-# - Allow alphabets and common words to be controlled in a 
+# - Allow alphabets and common words to be controlled in a
 # config file
 # Have the iteration loop break when a near match is found
 
@@ -282,7 +282,6 @@ def main():
 
             if len(key) != len(alphabet):
                 print(f"ERR: Key must be {len(alphabet)} letters long ({len(key)})")
-                print(str(key))
                 return
 
             for char in key:
