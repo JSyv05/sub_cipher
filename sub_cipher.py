@@ -1,12 +1,20 @@
 # TODO:
-# add in different key generators (shift, rotation)
-# Implement cracker functionality
+# - Add in different key generators (shift, rotation)
+# - Implement cracker functionality
+# - Implement secure key generation
+# - Allow alphabets and common words to be controlled in a 
+# config file
+# Have the iteration loop break when a near match is found
 
 import argparse
 import os
 import random
 import re
 
+# Common words like it, is, in, a, and I are not
+# included because they are either too similar to
+# eachother and/or are too short to reliably perform
+# swaps based on them
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 most_common_letters = "etaoinsrhdlucmfywgpbvkxqjz"
 common_english_words = [
@@ -15,13 +23,8 @@ common_english_words = [
     " to ",
     " of ",
     " and ",
-    " a ",
-    " in ",
     " that ",
     " have ",
-    " i ",
-    " it ",
-    " is ",
     " you ",
 ]
 
@@ -31,10 +34,13 @@ plain_text_path = folder_path + "/plain_text.txt"
 cipher_text_path = folder_path + "/cipher_text.txt"
 key_path = folder_path + "/key.txt"
 freq_table_path = folder_path + "/freq_table.txt"
-crack_keys_text_path = folder_path + "/crack_keys.txt"
-crack_text_path = folder_path + "/crack_text.txt"
+crack_path = folder_path + "/crack_iterations.txt"
 
-alphabet_length = len(alphabet)
+
+def write_file(content, path):
+    file = open(path, "w")
+    file.write(repr(content))
+    file.close()
 
 
 # this function will accept a file, a key, and an alphabet.
@@ -43,14 +49,14 @@ alphabet_length = len(alphabet)
 # plain text with the key letter associated with it
 def sub_encrypt(plain_text, key, alphabet):
     key_map = dict(zip(alphabet, key))
-    print(f"Alphabet: {alphabet}")
-    print(f"Key: {key}")
-    print(f"Cipher text: {plain_text}")
-    print(f"Map: {key_map}")
+    print(f"Alphabet: {alphabet}\n")
+    print(f"Key: {key}\n")
+    print(f"Cipher text: {plain_text}\n")
+    print(f"Map: {key_map}\n")
     print("Encrypting...")
     result = [key_map.get(letter.lower(), letter) for letter in plain_text]
     joined_result = "".join(result)
-    print(f"Encrypted text: {joined_result}")
+    print(f"Encrypted text: {joined_result}\n")
     return joined_result
 
 
@@ -58,41 +64,33 @@ def sub_encrypt(plain_text, key, alphabet):
 # the key to the alphabet, it maps the alphabet to the key
 def sub_decrypt(cipher_text, key, alphabet):
     alpha_map = dict(zip(key, alphabet))
-    print(f"Alphabet: {alphabet}")
-    print(f"Key: {key}")
-    print(f"Cipher text: {cipher_text}")
-    print(f"Map: {alpha_map}")
+    print(f"Alphabet: {alphabet}\n")
+    print(f"Key: {key}\n")
+    print(f"Cipher text: {cipher_text}\n")
+    print(f"Map: {alpha_map}\n")
     print("Decrypting...")
     result = [alpha_map.get(letter.lower(), letter) for letter in cipher_text]
     joined_result = "".join(result)
-    print(f"Decrypted text: {joined_result}")
+    print(f"Decrypted text: {joined_result}\n")
     return joined_result
 
 
 # gen_key will take the english alphabet, break it into a list,
 # shuffle the list, join the list into a string, and return the
 # result
-
-# TODO: Implement secure key generation
-
-
 def gen_key():
     letter_list = list(alphabet)
     print("Generating key...")
     random.shuffle(letter_list)  # this isn't secure, but works :P
     result = "".join(letter_list)
-    print(f"Generated key: {result}")
+    print(f"Generated key: {result}\n")
     return result
 
 
-def remove_special_chars(text):
-    return re.sub(r"[^a-zA-Z\s]", "", text)
-
-
-def remove_special_chars_sub_space(text):
-    return re.sub(r"[^a-zA-Z]", "", text)
-
-
+# This function first generates a dictionary based on how
+# many of a letter there are, add in any letters that are
+# missing from the string, and then return a sorted list
+# of the letters and their frequency
 def gen_freq_table(text, alphabet):
     print(f"Cipher text: {text}")
     print("Generating frequency table...")
@@ -119,29 +117,59 @@ def gen_freq_table(text, alphabet):
     return sorted_freq_table
 
 
-def crack(text, alphabet):
+# Removes all non-alphabetical characters from a string,
+# preserves spaces
+def remove_special_chars(text):
+    return re.sub(r"[^a-zA-Z\s]", "", text)
+
+
+# Removes all non-alphabetical characters from a string,
+# does not preserve spacing
+def remove_special_chars_sub_space(text):
+    return re.sub(r"[^a-zA-Z]", "", text)
+
+
+# Crack will create a frequency table, then generate
+# a key based on the frequency of the letters. That
+# key will be mapped onto a dict based on the most
+# common letters. From there we will iterate through
+# the cipher text, generating a key and the text
+# based on that key.
+def crack(text, alphabet, common_letters):
     print("Cracking...")
     freq_table = str(gen_freq_table(text, alphabet))
 
     print("Creating key based on frequency table...")
-
     freq_key = remove_special_chars_sub_space(freq_table)
-
     print(f"Frequency key: {freq_key}\n")
 
     print("Generating frequency map...")
-
-    freq_key_map = dict(zip(most_common_letters, freq_key))
-
+    freq_key_map = dict(zip(common_letters, freq_key))
     print(f"Frequency mapping: {freq_key_map}\n")
 
-    print("Mapping frequency onto alphabet...")
+    print("performing initial swaps...")
 
+    mod_text = text
+    mod_key = alphabet
+    with open(crack_path, "w") as f:
+        pass
+    crack_file = open(crack_path, "a")
+    for key, value in freq_key_map.items():
+        char_to_swap = value + key
+        print(f"Chars to swap out: {char_to_swap}")
+        crack_file.write(f"Chars to swap out: {char_to_swap}\n")
+        swap_char = key + value
+        print(f"Chars to swap in: {swap_char}\n")
+        crack_file.write(f"Chars to swap out: {swap_char}\n\n")
+        translation_table = str.maketrans(char_to_swap, swap_char)
+        mod_text = mod_text.translate(translation_table)
+        mod_key = mod_key.translate(translation_table)
+        print(f"Modified key: {mod_key}")
+        crack_file.write(f"Modified key: {mod_key}\n")
+        print(f"Modified text: {mod_text}\n")
+        crack_file.write(f"Modified text: {mod_text}\n\n")
 
-def write_file(content, path):
-    file = open(path, "w")
-    file.write(repr(content))
-    file.close()
+    crack_file.close()
 
 
 def main():
@@ -207,8 +235,8 @@ def main():
                 print("ERR: Unhandled error occured")
                 return
 
-            if len(key) != alphabet_length:
-                print(f"ERR: Key must be {alphabet_length} letters long ({len(key)})")
+            if len(key) != len(alphabet):
+                print(f"ERR: Key must be {len(alphabet)} letters long ({len(key)})")
                 return
 
             for char in key:
@@ -232,7 +260,7 @@ def main():
             elif args.nokey:
                 if args.crack:
                     cipher_text = remove_special_chars(text_file.read()).lower()
-                    crack(cipher_text, alphabet)
+                    crack(cipher_text, alphabet, most_common_letters)
                     return
                 else:
                     cipher_text = remove_special_chars(text_file.read()).lower()
@@ -252,8 +280,8 @@ def main():
                 print("ERR: Unhandled error occured")
                 return
 
-            if len(key) != alphabet_length:
-                print(f"ERR: Key must be {alphabet_length} letters long ({len(key)})")
+            if len(key) != len(alphabet):
+                print(f"ERR: Key must be {len(alphabet)} letters long ({len(key)})")
                 print(str(key))
                 return
 
