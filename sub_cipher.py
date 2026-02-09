@@ -11,7 +11,7 @@ import os
 import random
 import re
 
-from thefuzz import fuzz, process
+# from thefuzz import fuzz, process
 
 # Common words like it, is, in, a, and I are not
 # included because they are either too similar to
@@ -80,13 +80,22 @@ def sub_decrypt(cipher_text, key, alphabet):
 # gen_key will take the english alphabet, break it into a list,
 # shuffle the list, join the list into a string, and return the
 # result
-def gen_key():
-    letter_list = list(alphabet)
+def gen_key(alphabet):
     print("Generating key...")
+    letter_list = list(alphabet)
     random.shuffle(letter_list)  # this isn't secure, but works :P
     result = "".join(letter_list)
     print(f"Generated key: {result}\n")
     return result
+
+
+def gen_shift_key(shift_count, alphabet):
+    print("Generating shift key...")
+    chars_to_shift = alphabet[:shift_count]
+    shift_chars = alphabet[shift_count:]
+    shift_key = shift_chars + chars_to_shift
+    print(f"Generated shift key: {shift_key}\n")
+    return shift_key
 
 
 # This function first generates a dictionary based on how
@@ -174,6 +183,29 @@ def crack(text, alphabet, common_letters):
     crack_file.close()
 
 
+def crack_shift(text, alphabet):
+    print("Cracking using shift cipher...")
+    with open(crack_path, "w") as f:
+        f.write("")
+    crack_file = open(crack_path, "a")
+    for i in range(len(alphabet)):
+        chars_to_shift = alphabet[:i]
+        shift_chars = alphabet[i:]
+        mod_key = shift_chars + chars_to_shift
+        key_map = dict(zip(alphabet, mod_key))
+
+        mod_list = [key_map.get(letter.lower(), letter) for letter in text]
+        mod_text = "".join(mod_list)
+        print(f"Shift: {i}")
+        crack_file.write(f"Shift: {i}\n")
+        print(f"Modified key: {mod_key}")
+        crack_file.write(f"Modified key: {mod_key}\n")
+        print(f"Modified text: {mod_text}\n")
+        crack_file.write(f"Modified text: {mod_text}\n\n")
+
+    crack_file.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="a cli tool for encrypting and decrypting text files using the substitution cipher"
@@ -209,6 +241,16 @@ def main():
         action="store_true",
     )
 
+    parser.add_argument(
+        "--shift",
+        help="generates a shift key when encrypting, shifts iterively when cracking",
+        type=int,
+        nargs="?",
+        const=1,
+        default=0,
+        dest="shift_value",
+    )
+
     args = parser.parse_args()
 
     if not bool(args.encrypt) ^ bool(args.decrypt):
@@ -225,7 +267,10 @@ def main():
                 print("ERR: Must specify key or no key")
                 return
             elif args.nokey:
-                key = gen_key()
+                if args.shift_value:
+                    key = gen_shift_key(args.shift_value, alphabet)
+                else:
+                    key = gen_key(alphabet)
             elif args.key:
                 if os.path.isfile(args.key) and os.access(args.key, os.R_OK):
                     key_file = open(args.key, "r")
@@ -260,14 +305,15 @@ def main():
                 print("ERR: Must specify key or no key")
                 return
             elif args.nokey:
-                if args.crack:
-                    cipher_text = remove_special_chars(text_file.read()).lower()
+                cipher_text = remove_special_chars(text_file.read()).lower()
+                if args.crack and args.shift_value:
+                    crack_shift(cipher_text, alphabet)
+                    return
+                elif args.crack:
                     crack(cipher_text, alphabet, most_common_letters)
                     return
                 else:
-                    cipher_text = remove_special_chars(text_file.read()).lower()
                     freq_table = gen_freq_table(cipher_text, alphabet)
-
                     write_file(freq_table, freq_table_path)
                     return
             elif args.key:
