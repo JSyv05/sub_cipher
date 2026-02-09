@@ -4,12 +4,14 @@
 # - Implement secure key generation
 # - Allow alphabets and common words to be controlled in a
 # config file
-# Have the iteration loop break when a near match is found
+# - Have the iteration loop break when a near match is found
 
 import argparse
 import os
 import random
 import re
+
+from thefuzz import fuzz, process
 
 # Common words like it, is, in, a, and I are not
 # included because they are either too similar to
