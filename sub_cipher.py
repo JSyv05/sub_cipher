@@ -152,7 +152,7 @@ def crack(text, alphabet, common_letters):
     mod_text = text
     mod_key = alphabet
     with open(crack_path, "w") as f:
-        pass
+        f.write("")
     crack_file = open(crack_path, "a")
     for key, value in freq_key_map.items():
         char_to_swap = value + key
